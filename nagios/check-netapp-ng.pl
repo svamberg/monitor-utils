@@ -46,6 +46,7 @@ use File::Basename;
 use Getopt::Long;
 use Time::Local;
 use IPC::Cmd qw(run_forked);
+use Data::Dumper;
 
 Getopt::Long::Configure('bundling');
 
@@ -107,116 +108,11 @@ my $blocks_fcp_write;
 
 my $snmpHostUptime;
 
-
 ### SNMP OIDs
-### You can browse at http://www.oidview.com/mibs/789/NETAPP-MIB.html
+## You can browse at http://www.oidview.com/mibs/789/NETAPP-MIB.html
 ###############
-my $snmpSysUpTime = '.1.3.6.1.2.1.1.3.0';
-my $snmpFailedFanCount = '.1.3.6.1.4.1.789.1.2.4.2.0';
-my $snmpFailPowerSupplyCount = '.1.3.6.1.4.1.789.1.2.4.4.0';
-my $snmpcpuBusyTimePerCent = '.1.3.6.1.4.1.789.1.2.1.3.0';
-my $snmpenvOverTemperature = '.1.3.6.1.4.1.789.1.2.4.1.0';
-my $snmpnvramBatteryStatus = '.1.3.6.1.4.1.789.1.2.5.1.0';
-my $snmpFailedDiskCount = '.1.3.6.1.4.1.789.1.6.4.7.0';
-my $snmpUpTime = '.1.3.6.1.2.1.1.3.0';
-my $snmpCacheAge = '.1.3.6.1.4.1.789.1.2.2.23.0';
-my $snmpGlobalStatus = '.1.3.6.1.4.1.789.1.2.2.4.0';
-my $snmpGlobalStatus_text = '.1.3.6.1.4.1.789.1.2.2.25.0';
-my $snmpNdmpSessions = '.1.3.6.1.4.1.789.1.10.2.0';
-my $snmpCifsSessions = '.1.3.6.1.4.1.789.1.7.2.12.0';
-my $snmpAutoSupportStatus = '.1.3.6.1.4.1.789.1.2.7.1.0';
-my $snmpAutoSupportStatus_text = '.1.3.6.1.4.1.789.1.2.7.2.0';
+my %oid = ();
 
-
-
-my $snmp_netapp_disksummary = '.1.3.6.1.4.1.789.1.6.4';
-my $snmp_netapp_disksummary_diskTotalCount = '.1.3.6.1.4.1.789.1.6.4.1.0';
-my $snmp_netapp_disksummary_diskActiveCount = '.1.3.6.1.4.1.789.1.6.4.2.0';
-my $snmp_netapp_disksummary_diskFailedCount = '.1.3.6.1.4.1.789.1.6.4.7.0';
-my $snmp_netapp_disksummary_diskSpareCount = '.1.3.6.1.4.1.789.1.6.4.8.0';
-my $snmp_netapp_disksummary_diskReconstructingCount = '.1.3.6.1.4.1.789.1.6.4.3.0';
-my $snmp_netapp_disksummary_diskFailedMessage = '.1.3.6.1.4.1.789.1.6.4.10.0';
-
-my $snmp_netapp_cf = '.1.3.6.1.4.1.789.1.2.3';
-my $snmp_netapp_cfSettings = '.1.3.6.1.4.1.789.1.2.3.1.0';
-my $snmp_netapp_cfState = '.1.3.6.1.4.1.789.1.2.3.2.0';
-my $snmp_netapp_cfCannotTakeoverCause = '.1.3.6.1.4.1.789.1.2.3.3.0';
-my $snmp_netapp_cfPartnerStatus = '.1.3.6.1.4.1.789.1.2.3.4.0';
-my $snmp_netapp_cfPartnerName = '.1.3.6.1.4.1.789.1.2.3.6.0';
-my $snmp_netapp_cfInterconnectStatus = '.1.3.6.1.4.1.789.1.2.3.8.0';
-
-my $snmpfilesysvolTable = '.1.3.6.1.4.1.789.1.5.8';
-my $snmpfilesysvolTablevolEntryOptions = "$snmpfilesysvolTable.1.7";
-my $snmpfilesysvolTablevolEntryvolName = "$snmpfilesysvolTable.1.2";
-
-
-
-
-my $snmp_netapp_volume_id_table_df = ".1.3.6.1.4.1.789.1.5.4.1";
-my $snmp_netapp_volume_id_table_df_name = "$snmp_netapp_volume_id_table_df.2";
-my $snmp_netapp_volume_id_table_df_total = "$snmp_netapp_volume_id_table_df.3";
-my $snmp_netapp_volume_id_table_df_used = "$snmp_netapp_volume_id_table_df.4";
-my $snmp_netapp_volume_id_table_df_free = "$snmp_netapp_volume_id_table_df.5";
-my $snmp_netapp_volume_id_table_df_used_prec = "$snmp_netapp_volume_id_table_df.6";
-my $snmp_netapp_volume_id_table_df_used_high = "$snmp_netapp_volume_id_table_df.16";
-my $snmp_netapp_volume_id_table_df_used_low = "$snmp_netapp_volume_id_table_df.17";
-
-my $snmpfsOverallStatus = '1.3.6.1.4.1.789.1.5.7.1.0';
-my $snmpfsOverallStatus_text = '1.3.6.1.4.1.789.1.5.7.2.0';
-
-# 64bit values for SNMP v2c
-my $snmp_netapp_volume_id_table_df64_total = "$snmp_netapp_volume_id_table_df.29";
-my $snmp_netapp_volume_id_table_df64_used = "$snmp_netapp_volume_id_table_df.30";
-my $snmp_netapp_volume_id_table_df64_free = "$snmp_netapp_volume_id_table_df.31";
-
-my $snmp_netapp_enclNumber = '.1.3.6.1.4.1.789.1.21.1.1';
-my $snmpEnclTable = '.1.3.6.1.4.1.789.1.21.1.2.1';
-my $snmpEnclTableIndex = "$snmpEnclTable.1";
-my $snmpEnclTableState = "$snmpEnclTable.2";
-my $snmpEnclTableShelfAddr = "$snmpEnclTable.3";
-my $snmpEnclTableProductID = "$snmpEnclTable.5";
-my $snmpEnclTableProductVendor = "$snmpEnclTable.6";
-my $snmpEnclTableProductModel = "$snmpEnclTable.7";
-my $snmpEnclTableProductRevision = "$snmpEnclTable.8";
-my $snmpEnclTableProductSerial = "$snmpEnclTable.9";
-my $snmpEnclTablePsFailed = "$snmpEnclTable.15";
-my $snmpEnclTableFanFailed = "$snmpEnclTable.18";
-my $snmpEnclTableTempOverFail = "$snmpEnclTable.21";
-my $snmpEnclTableTempOverWarn = "$snmpEnclTable.22";
-my $snmpEnclTableTempUnderFail = "$snmpEnclTable.23";
-my $snmpEnclTableTempUnderWarn = "$snmpEnclTable.24";
-my $snmpEnclTableCurrentTemp = "$snmpEnclTable.25";
-my $snmpEnclTableElectronicFailed = "$snmpEnclTable.33";
-my $snmpEnclTableVoltOverFail = "$snmpEnclTable.36";
-my $snmpEnclTableVoltOverWarn = "$snmpEnclTable.37";
-my $snmpEnclTableVoltUnderFail = "$snmpEnclTable.38";
-my $snmpEnclTableVoltUnderWarn = "$snmpEnclTable.39";
-
-
-my $snmp_netapp_misc = '1.3.6.1.4.1.789.1.2.2';
-my $snmp_netapp_miscHighNfsOps = "$snmp_netapp_misc.5.0";
-my $snmp_netapp_miscLowNfsOps = "$snmp_netapp_misc.6.0";
-my $snmp_netapp_miscHighCifsOps = "$snmp_netapp_misc.7.0";
-my $snmp_netapp_miscLowCifsOps = "$snmp_netapp_misc.8.0";
-my $snmp_netapp_misc64DiskReadBytes = "$snmp_netapp_misc.32.0";
-my $snmp_netapp_misc64DiskWriteBytes = "$snmp_netapp_misc.33.0";
-
-my $snmp_netapp_blocks = '.1.3.6.1.4.1.789.1.17';
-my $snmp_netapp_blocks_iscsi64Ops = "$snmp_netapp_blocks.24.0";
-my $snmp_netapp_blocks_iscsi64ReadBytes = "$snmp_netapp_blocks.22.0";
-my $snmp_netapp_blocks_iscsi64WriteBytes = "$snmp_netapp_blocks.23.0";
-my $snmp_netapp_blocks_fcp64Ops = "$snmp_netapp_blocks.25.0";
-my $snmp_netapp_blocks_fcp64ReadBytes = "$snmp_netapp_blocks.20.0";
-my $snmp_netapp_blocks_fcp64WriteBytes = "$snmp_netapp_blocks.21.0";
-
-### SNAPSHOT OIDs
-### You can browse at http://www.oidview.com/mibs/789/NETWORK-APPLIANCE-MIB.html
-###############
-
-my $snmp_filesys_snapshot_slVTable_slVEntry = '.1.3.6.1.4.1.789.1.5.5.2.1';
-my $snmp_filesys_snapshot_slVTable_slVEntry_index = "$snmp_filesys_snapshot_slVTable_slVEntry.1";
-my $snmp_filesys_snapshot_slVTable_slVEntry_number = "$snmp_filesys_snapshot_slVTable_slVEntry.8";
-my $snmp_filesys_snapshot_slVTable_slVEntry_Vname = "$snmp_filesys_snapshot_slVTable_slVEntry.9";
 
 # SNMP Status Codes
 my %nvramBatteryStatus = (
@@ -333,6 +229,109 @@ sub _create_session(@) {
                 exit(1);
         }
         return $sess;
+}
+
+sub _set_oid {
+        $oid{SysUpTime} = '.1.3.6.1.2.1.1.3.0';
+        $oid{FailedFanCount} = '.1.3.6.1.4.1.789.1.2.4.2.0';
+        $oid{FailPowerSupplyCount} = '.1.3.6.1.4.1.789.1.2.4.4.0';
+        $oid{cpuBusyTimePerCent} = '.1.3.6.1.4.1.789.1.2.1.3.0';
+        $oid{envOverTemperature} = '.1.3.6.1.4.1.789.1.2.4.1.0';
+        $oid{nvramBatteryStatus} = '.1.3.6.1.4.1.789.1.2.5.1.0';
+        $oid{FailedDiskCount} = '.1.3.6.1.4.1.789.1.6.4.7.0';
+        $oid{UpTime} = '.1.3.6.1.2.1.1.3.0';
+        $oid{CacheAge} = '.1.3.6.1.4.1.789.1.2.2.23.0';
+        $oid{GlobalStatus} = '.1.3.6.1.4.1.789.1.2.2.4.0';
+        $oid{GlobalStatus_text} = '.1.3.6.1.4.1.789.1.2.2.25.0';
+        $oid{NdmpSessions} = '.1.3.6.1.4.1.789.1.10.2.0';
+        $oid{CifsSessions} = '.1.3.6.1.4.1.789.1.7.2.12.0';
+        $oid{AutoSupportStatus} = '.1.3.6.1.4.1.789.1.2.7.1.0';
+        $oid{AutoSupportStatus_text} = '.1.3.6.1.4.1.789.1.2.7.2.0';
+
+        $oid{netapp_disksummary} = '.1.3.6.1.4.1.789.1.6.4';
+        $oid{netapp_disksummary_diskTotalCount} = '.1.3.6.1.4.1.789.1.6.4.1.0';
+        $oid{netapp_disksummary_diskActiveCount} = '.1.3.6.1.4.1.789.1.6.4.2.0';
+        $oid{netapp_disksummary_diskFailedCount} = '.1.3.6.1.4.1.789.1.6.4.7.0';
+        $oid{netapp_disksummary_diskSpareCount} = '.1.3.6.1.4.1.789.1.6.4.8.0';
+        $oid{netapp_disksummary_diskReconstructingCount} = '.1.3.6.1.4.1.789.1.6.4.3.0';
+        $oid{netapp_disksummary_diskFailedMessage} = '.1.3.6.1.4.1.789.1.6.4.10.0';
+
+        $oid{netapp_cf} = '.1.3.6.1.4.1.789.1.2.3';
+        $oid{netapp_cfSettings} = '.1.3.6.1.4.1.789.1.2.3.1.0';
+        $oid{netapp_cfState} = '.1.3.6.1.4.1.789.1.2.3.2.0';
+        $oid{netapp_cfCannotTakeoverCause} = '.1.3.6.1.4.1.789.1.2.3.3.0';
+        $oid{netapp_cfPartnerStatus} = '.1.3.6.1.4.1.789.1.2.3.4.0';
+        $oid{netapp_cfPartnerName} = '.1.3.6.1.4.1.789.1.2.3.6.0';
+        $oid{netapp_cfInterconnectStatus} = '.1.3.6.1.4.1.789.1.2.3.8.0';
+
+        $oid{filesysvolTable} = '.1.3.6.1.4.1.789.1.5.8';
+        $oid{filesysvolTablevolEntryOptions} = "$oid{filesysvolTable}.1.7";
+        $oid{filesysvolTablevolEntryvolName} = "$oid{filesysvolTable}.1.2";
+
+        $oid{netapp_volume_id_table_df} = ".1.3.6.1.4.1.789.1.5.4.1";
+        $oid{netapp_volume_id_table_df_name} = "$oid{netapp_volume_id_table_df}2";
+        $oid{netapp_volume_id_table_df_total} = "$oid{netapp_volume_id_table_df}3";
+        $oid{netapp_volume_id_table_df_used} = "$oid{netapp_volume_id_table_df}4";
+        $oid{netapp_volume_id_table_df_free} = "$oid{netapp_volume_id_table_df}5";
+        $oid{netapp_volume_id_table_df_used_prec} = "$oid{netapp_volume_id_table_df}6";
+        $oid{netapp_volume_id_table_df_used_high} = "$oid{netapp_volume_id_table_df}16";
+        $oid{netapp_volume_id_table_df_used_low} = "$oid{netapp_volume_id_table_df}17";
+
+        $oid{fsOverallStatus} = '1.3.6.1.4.1.789.1.5.7.1.0';
+        $oid{fsOverallStatus_text} = '1.3.6.1.4.1.789.1.5.7.2.0';
+
+        # 64bit values for SNMP v2c
+        $oid{netapp_volume_id_table_df64_total} = "$oid{netapp_volume_id_table_df}.29";
+        $oid{netapp_volume_id_table_df64_used} = "$oid{netapp_volume_id_table_df}.30";
+        $oid{netapp_volume_id_table_df64_free} = "$oid{netapp_volume_id_table_df}.31";
+
+        $oid{netapp_enclNumber} = '.1.3.6.1.4.1.789.1.21.1.1';
+        $oid{EnclTable} = '.1.3.6.1.4.1.789.1.21.1.2.1';
+        $oid{EnclTableIndex} = "$oid{EnclTable}.1";
+        $oid{EnclTableState} = "$oid{EnclTable}.2";
+        $oid{EnclTableShelfAddr} = "$oid{EnclTable}.3";
+        $oid{EnclTableProductID} = "$oid{EnclTable}.5";
+        $oid{EnclTableProductVendor} = "$oid{EnclTable}.6";
+        $oid{EnclTableProductModel} = "$oid{EnclTable}.7";
+        $oid{EnclTableProductRevision} = "$oid{EnclTable}.8";
+        $oid{EnclTableProductSerial} = "$oid{EnclTable}.9";
+        $oid{EnclTablePsFailed} = "$oid{EnclTable}.15";
+        $oid{EnclTableFanFailed} = "$oid{EnclTable}.18";
+        $oid{EnclTableTempOverFail} = "$oid{EnclTable}.21";
+        $oid{EnclTableTempOverWarn} = "$oid{EnclTable}.22";
+        $oid{EnclTableTempUnderFail} = "$oid{EnclTable}.23";
+        $oid{EnclTableTempUnderWarn} = "$oid{EnclTable}.24";
+        $oid{EnclTableCurrentTemp} = "$oid{EnclTable}.25";
+        $oid{EnclTableElectronicFailed} = "$oid{EnclTable}.33";
+        $oid{EnclTableVoltOverFail} = "$oid{EnclTable}.36";
+        $oid{EnclTableVoltOverWarn} = "$oid{EnclTable}.37";
+        $oid{EnclTableVoltUnderFail} = "$oid{EnclTable}.38";
+        $oid{EnclTableVoltUnderWarn} = "$oid{EnclTable}.39";
+
+        $oid{netapp_misc} = '1.3.6.1.4.1.789.1.2.2';
+        $oid{netapp_miscHighNfsOps} = "$oid{netapp_misc}.5.0";
+        $oid{netapp_miscLowNfsOps} = "$oid{netapp_misc}.6.0";
+        $oid{netapp_miscHighCifsOps} = "$oid{netapp_misc}.7.0";
+        $oid{netapp_miscLowCifsOps} = "$oid{netapp_misc}.8.0";
+        $oid{netapp_misc64DiskReadBytes} = "$oid{netapp_misc}.32.0";
+        $oid{netapp_misc64DiskWriteBytes} = "$oid{netapp_misc}.33.0";
+
+        $oid{netapp_blocks} = '.1.3.6.1.4.1.789.1.17';
+        $oid{netapp_blocks_iscsi64Ops} = "$oid{netapp_blocks}.24.0";
+        $oid{netapp_blocks_iscsi64ReadBytes} = "$oid{netapp_blocks}.22.0";
+        $oid{netapp_blocks_iscsi64WriteBytes} = "$oid{netapp_blocks}.23.0";
+        $oid{netapp_blocks_fcp64Ops} = "$oid{netapp_blocks}.25.0";
+        $oid{netapp_blocks_fcp64ReadBytes} = "$oid{netapp_blocks}.20.0";
+        $oid{netapp_blocks_fcp64WriteBytes} = "$oid{netapp_blocks}.21.0";
+
+        ### SNAPSHOT OIDs
+        ### You can browse at http://www.oidview.com/mibs/789/NETWORK-APPLIANCE-MIB.html
+        ###############
+
+        $oid{filesys_snapshot_slVTable_slVEntry} = '.1.3.6.1.4.1.789.1.5.5.2.1';
+        $oid{filesys_snapshot_slVTable_slVEntry_index} = "$oid{filesys_snapshot_slVTable_slVEntry}.1";
+        $oid{filesys_snapshot_slVTable_slVEntry_number} = "$oid{filesys_snapshot_slVTable_slVEntry}.8";
+        $oid{filesys_snapshot_slVTable_slVEntry_Vname} = "$oid{filesys_snapshot_slVTable_slVEntry}.9";
 }
 
 sub FSyntaxError($) {
@@ -512,7 +511,7 @@ FSyntaxError("Missing -H")  unless defined $opt{'filer'};
 FSyntaxError("Missing -C")  unless defined $opt{'community'};
 FSyntaxError("Missing -T")  unless defined $opt{'check_type'};
 if($opt{'vol'}) {
-        if ( !( ($opt{'vol'} =~ m#^/vol/.*$#) or ($opt{'vol'} =~ m#^[^/]*$#) ) )  {
+        if ( !( ($opt{'vol'} =~ m#^/vol/.*$#) or ($opt{'vol'} =~ m#^[^/]*$#) ) )  { 
                 FSyntaxError("$opt{'vol'} format is '/vol/volname' or 'aggregate_name'! For listing available names use any text such as '-v whatever'.");
         }
 }
@@ -543,13 +542,16 @@ alarm($TIMEOUT);
 # Establish SNMP Session
 our $snmp_session = _create_session($opt{'filer'},$opt{'community'},$opt{'version'},$opt{'timeout'});
 
+# set OID table
+_set_oid();
+
 # setup counterFile now that we have host IP and check type
 $counterFile = $counterFilePath."/".$opt{'filer'}.".check-netapp-ng.$opt{'check_type'}.nagioscache";
 
 
 # READ AND UPDATE CACHE FOR SPECIFIC TESTS FROM FILE
 if (("$opt{'check_type'}" eq "CIFSOPS") or ("$opt{'check_type'}" eq "NFSOPS") or ("$opt{'check_type'}" eq "ISCSIOPS") or ("$opt{'check_type'}" eq "FCPOPS")) {
-        $snmpHostUptime =  _get_oid_value($snmp_session,$snmpSysUpTime);
+        $snmpHostUptime =  _get_oid_value($snmp_session,$oid{SysUpTime});
 
         # READ CACHE DATA FROM FILE IF IT EXISTS
         if (-e $counterFile) {
@@ -582,36 +584,36 @@ if (("$opt{'check_type'}" eq "CIFSOPS") or ("$opt{'check_type'}" eq "NFSOPS") or
                 print FILE "$snmpHostUptime\n";
 
                 if ($opt{'check_type'} eq 'NFSOPS') {
-                        my $low_nfs_ops = _get_oid_value($snmp_session,$snmp_netapp_miscLowNfsOps);
-                        my $high_nfs_ops = _get_oid_value($snmp_session,$snmp_netapp_miscHighNfsOps);
+                        my $low_nfs_ops = _get_oid_value($snmp_session,$oid{netapp_miscLowNfsOps});
+                        my $high_nfs_ops = _get_oid_value($snmp_session,$oid{netapp_miscHighNfsOps});
                         $total_nfs_ops = _ulong64($high_nfs_ops, $low_nfs_ops);
                         print FILE "$total_nfs_ops\n";
                 }
 
                 if ($opt{'check_type'} eq 'CIFSOPS') {
-                        my $low_cifs_ops = _get_oid_value($snmp_session,$snmp_netapp_miscLowCifsOps);
-                        my $high_cifs_ops = _get_oid_value($snmp_session,$snmp_netapp_miscHighCifsOps);
+                        my $low_cifs_ops = _get_oid_value($snmp_session,$oid{netapp_miscLowCifsOps});
+                        my $high_cifs_ops = _get_oid_value($snmp_session,$oid{_netapp_miscHighCifsOps});
                         $total_cifs_ops = _ulong64($high_cifs_ops, $low_cifs_ops);
                         print FILE "$total_cifs_ops\n";
                 }
 
                 if ($opt{'check_type'} eq 'ISCSIOPS') {
-                        $blocks_iscsi_ops = _get_oid_value($snmp_session,$snmp_netapp_blocks_iscsi64Ops);
-                        $blocks_iscsi_read = _get_oid_value($snmp_session,$snmp_netapp_blocks_iscsi64ReadBytes);
-                        $blocks_iscsi_write = _get_oid_value($snmp_session,$snmp_netapp_blocks_iscsi64WriteBytes);
+                        $blocks_iscsi_ops = _get_oid_value($snmp_session,$oid{netapp_blocks_iscsi64Ops});
+                        $blocks_iscsi_read = _get_oid_value($snmp_session,$oid{netapp_blocks_iscsi64ReadBytes});
+                        $blocks_iscsi_write = _get_oid_value($snmp_session,$oid{netapp_blocks_iscsi64WriteBytes});
                         print FILE "$blocks_iscsi_ops\n$blocks_iscsi_read\n$blocks_iscsi_write\n";
                 }
 
                 if ($opt{'check_type'} eq 'FCPOPS') {
-                        $blocks_fcp_ops = _get_oid_value($snmp_session,$snmp_netapp_blocks_fcp64Ops);
-                        $blocks_fcp_read = _get_oid_value($snmp_session,$snmp_netapp_blocks_fcp64ReadBytes);
-                        $blocks_fcp_write = _get_oid_value($snmp_session,$snmp_netapp_blocks_fcp64WriteBytes);
+                        $blocks_fcp_ops = _get_oid_value($snmp_session,$oid{netapp_blocks_fcp64Ops});
+                        $blocks_fcp_read = _get_oid_value($snmp_session,$oid{netapp_blocks_fcp64ReadBytes});
+                        $blocks_fcp_write = _get_oid_value($snmp_session,$oid{netapp_blocks_fcp64WriteBytes});
                         print FILE "$blocks_fcp_ops\n$blocks_fcp_read\n$blocks_fcp_write\n";
                 }
 
                 if ( ($opt{'check_type'} eq 'ISCSIOPS') or ($opt{'check_type'} eq 'FCPOPS') ) {
-                        $total_disk_read = _get_oid_value($snmp_session,$snmp_netapp_misc64DiskReadBytes);
-                        $total_disk_write = _get_oid_value($snmp_session,$snmp_netapp_misc64DiskWriteBytes);
+                        $total_disk_read = _get_oid_value($snmp_session,$oid{netapp_misc64DiskReadBytes});
+                        $total_disk_write = _get_oid_value($snmp_session,$oid{netapp_misc64DiskWriteBytes});
                         print FILE "$total_disk_read\n$total_disk_write\n";
                 }
                 close(FILE);
@@ -652,7 +654,7 @@ if (("$opt{'check_type'}" eq "CIFSOPS") or ("$opt{'check_type'}" eq "NFSOPS") or
 
 ### Temperature ###
 if("$opt{'check_type'}" eq "TEMP") {
-        my $check = _get_oid_value($snmp_session,$snmpenvOverTemperature);
+        my $check = _get_oid_value($snmp_session,$oid{envOverTemperature});
         if($check == 1) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} is ok";
@@ -663,7 +665,7 @@ if("$opt{'check_type'}" eq "TEMP") {
         $perf = "overtemperature=$check";
 ### Fan ###
 } elsif("$opt{'check_type'}" eq "FAN") {
-        my $check = _get_oid_value($snmp_session,$snmpFailedFanCount);
+        my $check = _get_oid_value($snmp_session,$oid{FailedFanCount});
         if($check == 0) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} $check";
@@ -674,7 +676,7 @@ if("$opt{'check_type'}" eq "TEMP") {
         $perf = "failedfans=$check";
 ### PS ###
 } elsif("$opt{'check_type'}" eq "PS") {
-        my $check = _get_oid_value($snmp_session,$snmpFailPowerSupplyCount);
+        my $check = _get_oid_value($snmp_session,$oid{FailPowerSupplyCount});
         if($check == 0) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} Fail $check";
@@ -685,7 +687,7 @@ if("$opt{'check_type'}" eq "TEMP") {
         $perf = "failedpowersupplies=$check";
 ### CPULOAD ###
 } elsif("$opt{'check_type'}" eq "CPULOAD") {
-        my $check = _get_oid_value($snmp_session,$snmpcpuBusyTimePerCent);
+        my $check = _get_oid_value($snmp_session,$oid{cpuBusyTimePerCent});
         ($msg,$stat) = _clac_err_stat($check,$opt{'check_type'},$opt{'warn'},$opt{'crit'});
         $perf = "cpuload=$check\%;$opt{'warn'};$opt{'crit'};;";
 ### NFSOPS ###
@@ -731,7 +733,7 @@ if("$opt{'check_type'}" eq "TEMP") {
         $perf = "fcpops=$check fcpread=$fcpread_per_seconds fcpwrite=$fcpwrite_per_seconds diskread=$diskread_per_seconds diskwrite=$diskwrite_per_seconds";
 ### NVRAM ###
 } elsif("$opt{'check_type'}" eq "NVRAM") {
-        my $check = _get_oid_value($snmp_session,$snmpnvramBatteryStatus);
+        my $check = _get_oid_value($snmp_session,$oid{nvramBatteryStatus});
         if($check == 1) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} $nvramBatteryStatus{$check}";
@@ -745,23 +747,23 @@ if("$opt{'check_type'}" eq "TEMP") {
 
         FSyntaxError("Missing -v")  unless defined $opt{'vol'};
 
-        my $r_vol_tbl = $snmp_session->get_table($snmp_netapp_volume_id_table_df_name);
+        my $r_vol_tbl = $snmp_session->get_table($oid{netapp_volume_id_table_df_name});
         foreach my $key ( keys %$r_vol_tbl) {
                 if("$$r_vol_tbl{$key}" eq "$opt{'vol'}") {
                         my @tmp_arr = split(/\./, $key);
-                        my $oid = pop(@tmp_arr);
+                        my $suboid = pop(@tmp_arr);
                         my $used = "";
                         my $capacity = "";
                         if ($opt{'version'} eq '2c') {
-                                $used = _get_oid_value($snmp_session,"$snmp_netapp_volume_id_table_df64_used.$oid");
-                                $capacity = _get_oid_value($snmp_session,"$snmp_netapp_volume_id_table_df64_total.$oid");
+                                $used = _get_oid_value($snmp_session,"$oid{netapp_volume_id_table_df64_used}.$suboid");
+                                $capacity = _get_oid_value($snmp_session,"$oid{netapp_volume_id_table_df64_total}.$suboid");
                         }
                         else {
-                                my $used_high = _get_oid_value($snmp_session,"$snmp_netapp_volume_id_table_df_used_high.$oid");
-                                my $used_low  = _get_oid_value($snmp_session,"$snmp_netapp_volume_id_table_df_used_low.$oid");
+                                my $used_high = _get_oid_value($snmp_session,"$oid{netapp_volume_id_table_df_used_high}.$suboid");
+                                my $used_low  = _get_oid_value($snmp_session,"$oid{netapp_volume_id_table_df_used_low}.$suboid");
                                 $used = _ulong64($used_high, $used_low);
                         }
-                        my $used_prec = _get_oid_value($snmp_session,"$snmp_netapp_volume_id_table_df_used_prec.$oid");
+                        my $used_prec = _get_oid_value($snmp_session,"$oid{netapp_volume_id_table_df_used_prec}.$suboid");
 
                         ($msg,$stat) = _clac_err_stat($used_prec,"$opt{'check_type'} $opt{'vol'}",$opt{'warn'},$opt{'crit'});
 
@@ -792,8 +794,8 @@ if("$opt{'check_type'}" eq "TEMP") {
         my $loc_year=(localtime(time()))[5]+1900;
         my $loc_time = time();
         my $badcount = 0;
-        my $r_snap_tbl = $snmp_session->get_table($snmp_filesys_snapshot_slVTable_slVEntry);
-        my $r_vol_tbl = $snmp_session->get_table($snmp_filesys_snapshot_slVTable_slVEntry_number);
+        my $r_snap_tbl = $snmp_session->get_table($oid{filesys_snapshot_slVTable_slVEntry});
+        my $r_vol_tbl = $snmp_session->get_table($oid{filesys_snapshot_slVTable_slVEntry_number});
         foreach my $key ( keys %$r_vol_tbl) {
                 my @tmp_oid = split(/\./, $key);
                 my $nb_col = scalar @tmp_oid;
@@ -802,17 +804,17 @@ if("$opt{'check_type'}" eq "TEMP") {
         @vol_id = uniq(@vol_list);
         foreach my $vol_id (@vol_id) {
                 my $Snap_year;
-                my $key_tmp = "$snmp_filesys_snapshot_slVTable_slVEntry_number.$vol_id.1";
+                my $key_tmp = "$oid{filesys_snapshot_slVTable_slVEntry_number}.$vol_id.1";
                 my $Nb_Snap = "$$r_vol_tbl{$key_tmp}";
-                my $key_tmp = "$snmp_filesys_snapshot_slVTable_slVEntry.9.$vol_id.$Nb_Snap";
+                my $key_tmp = "$oid{filesys_snapshot_slVTable_slVEntry}.9.$vol_id.$Nb_Snap";
                 my $Vol_Name = "$$r_snap_tbl{$key_tmp}";
-                my $key_tmp = "$snmp_filesys_snapshot_slVTable_slVEntry.2.$vol_id.$Nb_Snap";
+                my $key_tmp = "$oid{filesys_snapshot_slVTable_slVEntry}.2.$vol_id.$Nb_Snap";
                 my $Snap_mon = "$$r_snap_tbl{$key_tmp}";
-                my $key_tmp = "$snmp_filesys_snapshot_slVTable_slVEntry.3.$vol_id.$Nb_Snap";
+                my $key_tmp = "$oid{filesys_snapshot_slVTable_slVEntry}.3.$vol_id.$Nb_Snap";
                 my $Snap_day = "$$r_snap_tbl{$key_tmp}";
-                my $key_tmp = "$snmp_filesys_snapshot_slVTable_slVEntry.4.$vol_id.$Nb_Snap";
+                my $key_tmp = "$oid{filesys_snapshot_slVTable_slVEntry}.4.$vol_id.$Nb_Snap";
                 my $Snap_hour = "$$r_snap_tbl{$key_tmp}";
-                my $key_tmp = "$snmp_filesys_snapshot_slVTable_slVEntry.5.$vol_id.$Nb_Snap";
+                my $key_tmp = "$oid{filesys_snapshot_slVTable_slVEntry}.5.$vol_id.$Nb_Snap";
                 my $Snap_min = "$$r_snap_tbl{$key_tmp}";
                 if ( $loc_mon >= $Snap_mon ) {
                         $Snap_year = $loc_year;
@@ -891,13 +893,13 @@ $perf = "outdated_snapshots=$badcount";
 } elsif("$opt{'check_type'}" eq "SNAPSHOT") {
         my @exc_list = split(',',$opt{'exclude'});
         my @vol_err;
-        my $r_vol_tbl = $snmp_session->get_table($snmpfilesysvolTablevolEntryvolName);
+        my $r_vol_tbl = $snmp_session->get_table($oid{filesysvolTablevolEntryvolName});
         foreach my $key ( keys %$r_vol_tbl) {
                 my @tmp_arr = split(/\./, $key);
-                my $oid = pop(@tmp_arr);
+                my $suboid = pop(@tmp_arr);
                 my $vol_tmp = "$$r_vol_tbl{$key}";
 
-                my $volopt = _get_oid_value($snmp_session,"$snmpfilesysvolTablevolEntryOptions.$oid");
+                my $volopt = _get_oid_value($snmp_session,"$oid{filesysvolTablevolEntryOptions}.$suboid");
 
                 if($volopt !~ /nosnap=off/) {
                         my $volcheck = 0;
@@ -925,7 +927,7 @@ $perf = "outdated_snapshots=$badcount";
 
 ### FAILEDDISK ###
 } elsif("$opt{'check_type'}" eq "FAILEDDISK") {
-        my $check = _get_oid_value($snmp_session,$snmpFailedDiskCount);
+        my $check = _get_oid_value($snmp_session,$oid{FailedDiskCount});
         if($check == 0) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} $check";
@@ -937,12 +939,12 @@ $perf = "outdated_snapshots=$badcount";
 
 ### DISKSUMMARY ###
 } elsif("$opt{'check_type'}" eq "DISKSUMMARY") {
-        my $diskTotal = _get_oid_value($snmp_session,$snmp_netapp_disksummary_diskTotalCount);
-        my $diskActive = _get_oid_value($snmp_session,$snmp_netapp_disksummary_diskActiveCount);
-        my $diskFailed = _get_oid_value($snmp_session,$snmp_netapp_disksummary_diskFailedCount);
-        my $diskReconstructing = _get_oid_value($snmp_session,$snmp_netapp_disksummary_diskReconstructingCount);
-        my $diskSpare = _get_oid_value($snmp_session,$snmp_netapp_disksummary_diskSpareCount);
-        my $diskMessage = _get_oid_value($snmp_session,$snmp_netapp_disksummary_diskFailedMessage);
+        my $diskTotal = _get_oid_value($snmp_session,$oid{netapp_disksummary_diskTotalCount});
+        my $diskActive = _get_oid_value($snmp_session,$oid{netapp_disksummary_diskActiveCount});
+        my $diskFailed = _get_oid_value($snmp_session,$oid{netapp_disksummary_diskFailedCount});
+        my $diskReconstructing = _get_oid_value($snmp_session,$oid{netapp_disksummary_diskReconstructingCount});
+        my $diskSpare = _get_oid_value($snmp_session,$oid{netapp_disksummary_diskSpareCount});
+        my $diskMessage = _get_oid_value($snmp_session,$oid{netapp_disksummary_diskFailedMessage});
 
         my $check=$diskFailed;
 
@@ -961,12 +963,12 @@ $perf = "outdated_snapshots=$badcount";
 ### HA ###
 } elsif("$opt{'check_type'}" eq "HA") {
 
-        my $cfSettings = _get_oid_value($snmp_session,$snmp_netapp_cfSettings);
-        my $cfState = _get_oid_value($snmp_session,$snmp_netapp_cfState);
-        my $cfCannotTakeoverCause = _get_oid_value($snmp_session,$snmp_netapp_cfCannotTakeoverCause);
-        my $cfPartnerStatus = _get_oid_value($snmp_session,$snmp_netapp_cfPartnerStatus);
-        my $cfPartnerName = _get_oid_value($snmp_session,$snmp_netapp_cfPartnerName);
-        my $cfInterconnectStatus = _get_oid_value($snmp_session,$snmp_netapp_cfInterconnectStatus);
+        my $cfSettings = _get_oid_value($snmp_session,$oid{netapp_cfSettings});
+        my $cfState = _get_oid_value($snmp_session,$oid{netapp_cfState});
+        my $cfCannotTakeoverCause = _get_oid_value($snmp_session,$oid{netapp_cfCannotTakeoverCause});
+        my $cfPartnerStatus = _get_oid_value($snmp_session,$oid{netapp_cfPartnerStatus});
+        my $cfPartnerName = _get_oid_value($snmp_session,$oid{netapp_cfPartnerName});
+        my $cfInterconnectStatus = _get_oid_value($snmp_session,$oid{netapp_cfInterconnectStatus});
 
         my $check=$cfSettings;
 
@@ -993,19 +995,19 @@ $perf = "outdated_snapshots=$badcount";
 
 ### UPTIME ###
 } elsif("$opt{'check_type'}" eq "UPTIME") {
-        my $check = _get_oid_value($snmp_session,$snmpUpTime);
+        my $check = _get_oid_value($snmp_session,$oid{UpTime});
         $msg = "$opt{'check_type'}: $check";
         $check =~ m/^\s*(\d+)\s+days,\s+(\d+):(\d+):(\d+).*$/;
         $perf = "uptime=" . ($1*86400 + $2*3600 + $3*60 + $4) . "s";
 ### CACHEAGE ###
 } elsif("$opt{'check_type'}" eq "CACHEAGE") {
-        my $check = _get_oid_value($snmp_session,$snmpCacheAge);
+        my $check = _get_oid_value($snmp_session,$oid{CacheAge});
         ($msg,$stat) = _clac_minutes_err_stat($check,$opt{'check_type'},$opt{'warn'},$opt{'crit'});
         $perf = "cache_age=$check";
 ### GLOBALSTATUS ###
 } elsif("$opt{'check_type'}" eq "GLOBALSTATUS") {
-        my $check = _get_oid_value($snmp_session,$snmpGlobalStatus);
-        my $global_stat_txt = _get_oid_value($snmp_session,$snmpGlobalStatus_text);
+        my $check = _get_oid_value($snmp_session,$oid{GlobalStatus});
+        my $global_stat_txt = _get_oid_value($snmp_session,$oid{GlobalStatus_text});
         if($check == 3) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} $GlobalStatusIndex{$check} $check $global_stat_txt";
@@ -1016,8 +1018,8 @@ $perf = "outdated_snapshots=$badcount";
         $perf = "globalstatus=$check";
 ### AUTOSUPPORTSTATUS ###
 } elsif("$opt{'check_type'}" eq "AUTOSUPPORTSTATUS") {
-        my $check = _get_oid_value($snmp_session,$snmpAutoSupportStatus);
-        my $autosupport_stat_txt = _get_oid_value($snmp_session,$snmpAutoSupportStatus_text);
+        my $check = _get_oid_value($snmp_session,$oid{AutoSupportStatus});
+        my $autosupport_stat_txt = _get_oid_value($snmp_session,$oid{AutoSupportStatus_text});
         if($check == 1) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} $AutoSupportStatusIndex{$check} $check $autosupport_stat_txt";
@@ -1028,59 +1030,56 @@ $perf = "outdated_snapshots=$badcount";
         $perf = "autosupportstatus=$check";
 ### NDMPSESSIONS ###
 } elsif("$opt{'check_type'}" eq "NDMPSESSIONS") {
-        my $check = _get_oid_value($snmp_session,$snmpNdmpSessions);
+        my $check = _get_oid_value($snmp_session,$oid{NdmpSessions});
         ($msg,$stat) = _clac_absolute_err_stat($check,$opt{'check_type'},$opt{'warn'},$opt{'crit'});
         $perf = "ndmpsess=$check";
 ### CIFSSESSIONS ###
 } elsif("$opt{'check_type'}" eq "CIFSSESSIONS") {
-        my $check = _get_oid_value($snmp_session,$snmpCifsSessions);
+        my $check = _get_oid_value($snmp_session,$oid{CifsSessions});
         ($msg,$stat) = _clac_absolute_err_stat($check,$opt{'check_type'},$opt{'warn'},$opt{'crit'});
         $perf = "cifssess=$check";
 ### SHELF ###
 } elsif ( ("$opt{'check_type'}" eq "SHELF") or ("$opt{'check_type'}" eq "SHELFINFO") ) {
         my @errs;
-        my $r_shelf = $snmp_session->get_table($snmpEnclTableIndex);
+        my $r_shelf = $snmp_session->get_table($oid{EnclTableIndex});
         my $perf_temp = "";
         foreach my $key ( sort keys %$r_shelf) {
                 my @tmp_arr = split(/\./, $key);
-                my $oid = pop(@tmp_arr);
+                my $suboid = pop(@tmp_arr);
 
                 my %shelf;
                 my @shelf_err;
-                my $addr = _get_oid_value($snmp_session,"$snmpEnclTableShelfAddr.$oid");
+                my $addr = _get_oid_value($snmp_session,"$oid{EnclTableShelfAddr}.$suboid");
 
-                my $shelf_state = _get_oid_value($snmp_session,"$snmpEnclTableState.$oid");
+                my $shelf_state = _get_oid_value($snmp_session,"$oid{EnclTableState}.$suboid");
 
                 if($shelf_state != 3) {
                         push(@shelf_err,"$addr state $EcnlStatusIndex{$shelf_state},");
                 }
 
                 if ("$opt{'check_type'}" eq "SHELFINFO") {
+                        my $shelf_temp =  _get_oid_value($snmp_session,"$oid{EnclTableCurrentTemp}.$suboid");
+                        my @current_temp = split(/\,/, $shelf_temp );
 
-                my $shelf_temp =  _get_oid_value($snmp_session,"$snmpEnclTableCurrentTemp.$oid");
-
-
-                my @current_temp = split(/\,/, $shelf_temp );
-
-                $shelf{'ShelfNumber'} = $oid;
-                $shelf{'CurrentTemp'} = shift(@current_temp);
-                $shelf{'ProductID'} = _get_oid_value($snmp_session,"$snmpEnclTableProductID.$oid");
-                $shelf{'ProductVendor'} = _get_oid_value($snmp_session,"$snmpEnclTableProductVendor.$oid");
-                $shelf{'ProductModel'} = _get_oid_value($snmp_session,"$snmpEnclTableProductModel.$oid");
-                $shelf{'ProductRevision'} = _get_oid_value($snmp_session,"$snmpEnclTableProductRevision.$oid");
-                $shelf{'ProductSerial'} = _get_oid_value($snmp_session,"$snmpEnclTableProductSerial.$oid");
+                        $shelf{'ShelfNumber'} = $suboid;
+                        $shelf{'CurrentTemp'} = shift(@current_temp);
+                        $shelf{'ProductID'} = _get_oid_value($snmp_session,"$oid{EnclTableProductID}.$suboid");
+                        $shelf{'ProductVendor'} = _get_oid_value($snmp_session,"$oid{EnclTableProductVendor}.$suboid");
+                        $shelf{'ProductModel'} = _get_oid_value($snmp_session,"$oid{EnclTableProductModel}.$suboid");
+                        $shelf{'ProductRevision'} = _get_oid_value($snmp_session,"$oid{EnclTableProductRevision}.$suboid");
+                        $shelf{'ProductSerial'} = _get_oid_value($snmp_session,"$oid{EnclTableProductSerial}.$suboid");
                 } else {
-                $shelf{'PsFail'} = _get_oid_value($snmp_session,"$snmpEnclTablePsFailed.$oid");
-                $shelf{'FanFail'} = _get_oid_value($snmp_session,"$snmpEnclTableFanFailed.$oid");
-                $shelf{'ElectFail'} = _get_oid_value($snmp_session,"$snmpEnclTableElectronicFailed.$oid");
-                $shelf{'TempOverFail'} = _get_oid_value($snmp_session,"$snmpEnclTableTempOverFail.$oid");
-                $shelf{'TempOver'} = _get_oid_value($snmp_session,"$snmpEnclTableTempOverWarn.$oid");
-                $shelf{'TempUnderFail'} = _get_oid_value($snmp_session,"$snmpEnclTableTempUnderFail.$oid");
-                $shelf{'TempUnderWarn'} = _get_oid_value($snmp_session,"$snmpEnclTableTempUnderWarn.$oid");
-                $shelf{'VoltOverFail'} = _get_oid_value($snmp_session,"$snmpEnclTableVoltOverFail.$oid");
-                $shelf{'VoltOverWarn'} = _get_oid_value($snmp_session,"$snmpEnclTableVoltOverWarn.$oid");
-                $shelf{'VoltUnderFail'} = _get_oid_value($snmp_session,"$snmpEnclTableVoltUnderFail.$oid");
-                $shelf{'VoltUnderWarn'} = _get_oid_value($snmp_session,"$snmpEnclTableVoltUnderWarn.$oid");
+                        $shelf{'PsFail'} = _get_oid_value($snmp_session,"$oid{EnclTablePsFailed}.$suboid");
+                        $shelf{'FanFail'} = _get_oid_value($snmp_session,"$oid{EnclTableFanFailed}.$suboid");
+                        $shelf{'ElectFail'} = _get_oid_value($snmp_session,"$oid{EnclTableElectronicFailed}.$suboid");
+                        $shelf{'TempOverFail'} = _get_oid_value($snmp_session,"$oid{EnclTableTempOverFail}.$suboid");
+                        $shelf{'TempOver'} = _get_oid_value($snmp_session,"$oid{EnclTableTempOverWarn}.$suboid");
+                        $shelf{'TempUnderFail'} = _get_oid_value($snmp_session,"$oid{EnclTableTempUnderFail}.$suboid");
+                        $shelf{'TempUnderWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableTempUnderWarn}.$suboid");
+                        $shelf{'VoltOverFail'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltOverFail}.$suboid");
+                        $shelf{'VoltOverWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltOverWarn}.$suboid");
+                        $shelf{'VoltUnderFail'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltUnderFail}.$suboid");
+                        $shelf{'VoltUnderWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltUnderWarn}.$suboid");
                 }
 
 
@@ -1126,8 +1125,8 @@ $perf = "outdated_snapshots=$badcount";
         }
 ### FSSTATUS ###
 } elsif("$opt{'check_type'}" eq "FSSTATUS") {
-        my $check = _get_oid_value($snmp_session,$snmpfsOverallStatus);
-        my $global_stat_txt = _get_oid_value($snmp_session,$snmpfsOverallStatus_text);
+        my $check = _get_oid_value($snmp_session,$oid{fsOverallStatus});
+        my $global_stat_txt = _get_oid_value($snmp_session,$oid{fsOverallStatus_text});
         if($check == 1) {
                 $stat = $ERRORS{'OK'};
                 $msg = "OK: $opt{'check_type'} $fsOverallStatusIndex{$check} $check $global_stat_txt";
