@@ -567,7 +567,7 @@ alarm($TIMEOUT);
 our $snmp_session = _create_session($opt{'filer'},$opt{'community'},$opt{'version'},$opt{'timeout'});
 
 # switch to C-mode if not defined
-if (_get_oid_value($snmp_session,".1.3.6.1.2.1.1.2.0") eq 'netappCluster' ) {
+if (_get_oid_value($snmp_session,".1.3.6.1.2.1.1.2.0") eq '.1.3.6.1.4.1.789.2.5' ) {
         $opt{mode} = 'C';        
 }
  
