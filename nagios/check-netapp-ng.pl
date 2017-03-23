@@ -231,7 +231,10 @@ sub _create_session(@) {
         return $sess;
 }
 
-sub _set_oid {
+sub _set_oid($) {
+        my $version = shift;
+
+        # DEFAULT VALUES (ONTAP 7.x, 8.x)
         $oid{SysUpTime} = '.1.3.6.1.2.1.1.3.0';
         $oid{FailedFanCount} = '.1.3.6.1.4.1.789.1.2.4.2.0';
         $oid{FailPowerSupplyCount} = '.1.3.6.1.4.1.789.1.2.4.4.0';
@@ -269,13 +272,13 @@ sub _set_oid {
         $oid{filesysvolTablevolEntryvolName} = "$oid{filesysvolTable}.1.2";
 
         $oid{netapp_volume_id_table_df} = ".1.3.6.1.4.1.789.1.5.4.1";
-        $oid{netapp_volume_id_table_df_name} = "$oid{netapp_volume_id_table_df}2";
-        $oid{netapp_volume_id_table_df_total} = "$oid{netapp_volume_id_table_df}3";
-        $oid{netapp_volume_id_table_df_used} = "$oid{netapp_volume_id_table_df}4";
-        $oid{netapp_volume_id_table_df_free} = "$oid{netapp_volume_id_table_df}5";
-        $oid{netapp_volume_id_table_df_used_prec} = "$oid{netapp_volume_id_table_df}6";
-        $oid{netapp_volume_id_table_df_used_high} = "$oid{netapp_volume_id_table_df}16";
-        $oid{netapp_volume_id_table_df_used_low} = "$oid{netapp_volume_id_table_df}17";
+        $oid{netapp_volume_id_table_df_name} = "$oid{netapp_volume_id_table_df}.2";
+        $oid{netapp_volume_id_table_df_total} = "$oid{netapp_volume_id_table_df}.3";
+        $oid{netapp_volume_id_table_df_used} = "$oid{netapp_volume_id_table_df}.4";
+        $oid{netapp_volume_id_table_df_free} = "$oid{netapp_volume_id_table_df}.5";
+        $oid{netapp_volume_id_table_df_used_prec} = "$oid{netapp_volume_id_table_df}.6";
+        $oid{netapp_volume_id_table_df_used_high} = "$oid{netapp_volume_id_table_df}.16";
+        $oid{netapp_volume_id_table_df_used_low} = "$oid{netapp_volume_id_table_df}.17";
 
         $oid{fsOverallStatus} = '1.3.6.1.4.1.789.1.5.7.1.0';
         $oid{fsOverallStatus_text} = '1.3.6.1.4.1.789.1.5.7.2.0';
@@ -332,6 +335,13 @@ sub _set_oid {
         $oid{filesys_snapshot_slVTable_slVEntry_index} = "$oid{filesys_snapshot_slVTable_slVEntry}.1";
         $oid{filesys_snapshot_slVTable_slVEntry_number} = "$oid{filesys_snapshot_slVTable_slVEntry}.8";
         $oid{filesys_snapshot_slVTable_slVEntry_Vname} = "$oid{filesys_snapshot_slVTable_slVEntry}.9";
+
+        if ($version =~ /^9\.\d+$/) {
+                $oid{envOverTemperature} = '.1.3.6.1.4.1.789.1.25.2.1.18';
+                $oid{FailedFanCount} = '.1.3.6.1.4.1.789.1.25.2.1.19';
+                $oid{FailPowerSupplyCount} = '.1.3.6.1.4.1.789.1.25.2.1.21';
+                $oid{nvramBatteryStatus} = '.1.3.6.1.4.1.789.1.25.2.1.17';
+        }
 }
 
 sub FSyntaxError($) {
@@ -403,7 +413,16 @@ sub _get_oid_value(@) {
         my $sess = shift;
         my $local_oid = shift;
         my $r_return = $sess->get_request(-varbindlist => [$local_oid]);
-        return($r_return->{$local_oid});
+        if ($r_return->{$local_oid} eq 'noSuchInstance' ) {
+                #print Data::Dumper->Dump([$r_return]);
+                $r_return = $sess->get_next_request(-varbindlist => [$local_oid]);
+                #print Data::Dumper->Dump([$r_return]);
+                return($r_return->{(keys %{$r_return})[0]}); # read first value from hash
+        }
+        else {
+                #print Data::Dumper->Dump([$r_return]);
+                return($r_return->{$local_oid});
+        }
 }
 
 sub _clac_generic_err_stat(@) {
@@ -543,16 +562,17 @@ alarm($TIMEOUT);
 our $snmp_session = _create_session($opt{'filer'},$opt{'community'},$opt{'version'},$opt{'timeout'});
 
 # set OID table
-_set_oid();
+my $productFirmwareVersion = "7.0"; # netapp 7.x, 8.x
+$productFirmwareVersion = _get_oid_value($snmp_session,".1.3.6.1.4.1.789.1.1.6.0");
+_set_oid($productFirmwareVersion);
 
 # setup counterFile now that we have host IP and check type
 $counterFile = $counterFilePath."/".$opt{'filer'}.".check-netapp-ng.$opt{'check_type'}.nagioscache";
 
-
 # READ AND UPDATE CACHE FOR SPECIFIC TESTS FROM FILE
 if (("$opt{'check_type'}" eq "CIFSOPS") or ("$opt{'check_type'}" eq "NFSOPS") or ("$opt{'check_type'}" eq "ISCSIOPS") or ("$opt{'check_type'}" eq "FCPOPS")) {
         $snmpHostUptime =  _get_oid_value($snmp_session,$oid{SysUpTime});
-
+        
         # READ CACHE DATA FROM FILE IF IT EXISTS
         if (-e $counterFile) {
                 open(FILE, "$counterFile");
