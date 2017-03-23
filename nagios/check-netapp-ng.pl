@@ -149,7 +149,6 @@ my %cfSettingsIndex = (
         5 => 'thisNodeDead',
 );
 
-
 my %cfStateIndex = (
         1 => 'dead',
         2 => 'canTakeover',
@@ -306,6 +305,7 @@ sub _set_oid($) {
         $oid{EnclTableTempUnderWarn} = "$oid{EnclTable}.24";
         $oid{EnclTableCurrentTemp} = "$oid{EnclTable}.25";
         $oid{EnclTableElectronicFailed} = "$oid{EnclTable}.33";
+        $oid{EnclTableVoltPresent} = "$oid{EnclTable}.35";
         $oid{EnclTableVoltOverFail} = "$oid{EnclTable}.36";
         $oid{EnclTableVoltOverWarn} = "$oid{EnclTable}.37";
         $oid{EnclTableVoltUnderFail} = "$oid{EnclTable}.38";
@@ -341,6 +341,7 @@ sub _set_oid($) {
                 $oid{FailedFanCount} = '.1.3.6.1.4.1.789.1.25.2.1.19';
                 $oid{FailPowerSupplyCount} = '.1.3.6.1.4.1.789.1.25.2.1.21';
                 $oid{nvramBatteryStatus} = '.1.3.6.1.4.1.789.1.25.2.1.17';
+                $oid{nodeHealth} = '.1.3.6.1.4.1.789.1.25.2.1.11';
         }
 }
 
@@ -386,6 +387,7 @@ This is $script_name in version $script_version.
     GLOBALSTATUS      - Global Status of the filer
     AUTOSUPPORTSTATUS - Auto Support Status of the filer
     HA                - High Availability
+    NODEHEALTH        - Node Health (only for Cluster mode)
     DISKSUMMARY       - Status of disks
     FAILEDDISK        - Number of failed disks
     UPTIME            - Only show\'s uptime
@@ -413,6 +415,7 @@ sub _get_oid_value(@) {
         my $sess = shift;
         my $local_oid = shift;
         my $r_return = $sess->get_request(-varbindlist => [$local_oid]);
+        #print ">>>$local_oid >>> $r_return->{$local_oid}\n";
         if ($r_return->{$local_oid} eq 'noSuchInstance' ) {
                 #print Data::Dumper->Dump([$r_return]);
                 $r_return = $sess->get_next_request(-varbindlist => [$local_oid]);
@@ -1036,6 +1039,17 @@ $perf = "outdated_snapshots=$badcount";
                 $msg = "CRIT: $opt{'check_type'} $GlobalStatusIndex{$check} $check $global_stat_txt";
         }
         $perf = "globalstatus=$check";
+### NODEHEALTH ###
+} elsif("$opt{'check_type'}" eq "NODEHEALTH") {
+        my $check = _get_oid_value($snmp_session,$oid{nodeHealth});
+        if($check == 1) {
+                $stat = $ERRORS{'OK'};
+                $msg = "OK: $opt{'check_type'} Node can communicate with the cluster.";
+        } else {
+                $stat = $ERRORS{'CRITICAL'};
+                $msg = "CRIT: $opt{'check_type'} Node cannot communicate with the cluster.";
+        }
+        $perf = "nodehealth=$check";
 ### AUTOSUPPORTSTATUS ###
 } elsif("$opt{'check_type'}" eq "AUTOSUPPORTSTATUS") {
         my $check = _get_oid_value($snmp_session,$oid{AutoSupportStatus});
@@ -1062,6 +1076,9 @@ $perf = "outdated_snapshots=$badcount";
 } elsif ( ("$opt{'check_type'}" eq "SHELF") or ("$opt{'check_type'}" eq "SHELFINFO") ) {
         my @errs;
         my $r_shelf = $snmp_session->get_table($oid{EnclTableIndex});
+        my $r_volt  = $snmp_session->get_table($oid{EnclTableVoltPresent});
+        my $r_volt_count = scalar (keys %$r_volt);
+        #print Data::Dumper->Dump([$oid{EnclTableIndex},$r_shelf, $r_volt]);
         my $perf_temp = "";
         foreach my $key ( sort keys %$r_shelf) {
                 my @tmp_arr = split(/\./, $key);
@@ -1096,10 +1113,10 @@ $perf = "outdated_snapshots=$badcount";
                         $shelf{'TempOver'} = _get_oid_value($snmp_session,"$oid{EnclTableTempOverWarn}.$suboid");
                         $shelf{'TempUnderFail'} = _get_oid_value($snmp_session,"$oid{EnclTableTempUnderFail}.$suboid");
                         $shelf{'TempUnderWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableTempUnderWarn}.$suboid");
-                        $shelf{'VoltOverFail'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltOverFail}.$suboid");
-                        $shelf{'VoltOverWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltOverWarn}.$suboid");
-                        $shelf{'VoltUnderFail'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltUnderFail}.$suboid");
-                        $shelf{'VoltUnderWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltUnderWarn}.$suboid");
+                        $shelf{'VoltOverFail'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltOverFail}.$suboid") if $suboid <= $r_volt_count;
+                        $shelf{'VoltOverWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltOverWarn}.$suboid") if $suboid <= $r_volt_count;
+                        $shelf{'VoltUnderFail'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltUnderFail}.$suboid") if $suboid <= $r_volt_count;
+                        $shelf{'VoltUnderWarn'} = _get_oid_value($snmp_session,"$oid{EnclTableVoltUnderWarn}.$suboid") if $suboid <= $r_volt_count;
                 }
 
 
@@ -1111,7 +1128,6 @@ $perf = "outdated_snapshots=$badcount";
                         }
                     }
                     #else { print "$subkey->"; print "None "; }
-
                         if ("$opt{'check_type'}" eq "SHELF") {
                         if(($shelf{$subkey} ne "") and ($shelf{$subkey} ne "noSuchInstance")) { push(@shelf_err,"$addr $subkey,") }
                         }
