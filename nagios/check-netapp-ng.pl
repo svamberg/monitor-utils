@@ -230,9 +230,7 @@ sub _create_session(@) {
         return $sess;
 }
 
-sub _set_oid($) {
-        my $version = shift;
-
+sub _set_oid() {
         # DEFAULT VALUES (ONTAP 7.x, 8.x)
         $oid{SysUpTime} = '.1.3.6.1.2.1.1.3.0';
         $oid{FailedFanCount} = '.1.3.6.1.4.1.789.1.2.4.2.0';
@@ -336,7 +334,7 @@ sub _set_oid($) {
         $oid{filesys_snapshot_slVTable_slVEntry_number} = "$oid{filesys_snapshot_slVTable_slVEntry}.8";
         $oid{filesys_snapshot_slVTable_slVEntry_Vname} = "$oid{filesys_snapshot_slVTable_slVEntry}.9";
 
-        if ($version =~ /^9\.\d+$/) {
+        if ($opt{mode} eq 'C') {
                 $oid{envOverTemperature} = '.1.3.6.1.4.1.789.1.25.2.1.18';
                 $oid{FailedFanCount} = '.1.3.6.1.4.1.789.1.25.2.1.19';
                 $oid{FailPowerSupplyCount} = '.1.3.6.1.4.1.789.1.25.2.1.21';
@@ -364,6 +362,8 @@ This is $script_name in version $script_version.
                             or aggregate name (not available in 7.x ONTAP)
                             For available values use any word, such as \'-v whatever\'
     -e <vol1[,vol2[,...]]>  Exclude volumes from snap check (SNAPSHOT/SNAPSHOTAGE)
+    -m <7|C>                Mode of ONTAP, 7-Mode (default) or C-Mode (cluster),
+                            switched to C-Mode automatic if cluster detected
     -I                      Inform only, return OK every time (ignore -w and -c values)
     -h                      This help
 
@@ -514,6 +514,7 @@ $opt{'crit'} = 500;
 $opt{'warn'} = 500;
 $opt{'version'} = 2;
 $opt{'timeout'} = 60;
+$opt{'mode'} = "7";
 my $result = GetOptions(\%opt,
                                                 'filer|H=s',
                                                 'community|C=s',
@@ -523,6 +524,7 @@ my $result = GetOptions(\%opt,
                                                 'crit|c=i',
                                                 'vol|v=s',
                                                 'exclude|e=s',
+                                                'mode|m=s',
                                                 'inform|I',
                                                 'timeout|t=i',
                                                 "help|h",
@@ -564,10 +566,12 @@ alarm($TIMEOUT);
 # Establish SNMP Session
 our $snmp_session = _create_session($opt{'filer'},$opt{'community'},$opt{'version'},$opt{'timeout'});
 
-# set OID table
-my $productFirmwareVersion = "7.0"; # netapp 7.x, 8.x
-$productFirmwareVersion = _get_oid_value($snmp_session,".1.3.6.1.4.1.789.1.1.6.0");
-_set_oid($productFirmwareVersion);
+# switch to C-mode if not defined
+if (_get_oid_value($snmp_session,".1.3.6.1.2.1.1.2.0") eq 'netappCluster' ) {
+        $opt{mode} = 'C';        
+}
+ 
+_set_oid();
 
 # setup counterFile now that we have host IP and check type
 $counterFile = $counterFilePath."/".$opt{'filer'}.".check-netapp-ng.$opt{'check_type'}.nagioscache";
